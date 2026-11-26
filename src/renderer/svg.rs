@@ -1,12 +1,13 @@
 use ego_tree::NodeRef;
 use indicatif::ProgressBar;
+use lasso::Spur;
 
 use crate::model::tree::Tree;
 use crate::templates::askama::tree::dirtree::Rendered;
 
 pub fn render_svg_templates<'a>(
     tree: &'a Tree,
-    render_fn: fn(NodeRef<'a, std::string::String>) -> Rendered,
+    render_fn: fn(NodeRef<'a, Spur>) -> Rendered,
     progress_bar: Option<&ProgressBar>,
 ) -> Vec<Rendered> {
     let root = tree.tree.root();

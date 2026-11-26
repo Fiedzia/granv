@@ -11,7 +11,7 @@ use walkdir;
 pub fn sort_by_func(
     sort_by: String,
 ) -> Result<impl FnMut(&walkdir::DirEntry, &walkdir::DirEntry) -> Ordering, String> {
-    let allowed_sort_parts = vec![
+    let allowed_sort_parts = [
         "type", "type-", "name", "name-", "size", "size-", "name_lc", "name_lc-",
     ];
     for sort_part in sort_by.clone().split(',') {
@@ -62,6 +62,9 @@ pub fn sort_by_func(
 
 pub fn build_tree(dir_cmd: &Directory, progress_bar: Option<&ProgressBar>) -> Result<Tree, String> {
     let mut tree = Tree::new();
+    let type_str_key = tree.rodeo.get_or_intern("type");
+    let level_str_key = tree.rodeo.get_or_intern("level");
+    let name_str_key = tree.rodeo.get_or_intern("name");
     let mut cnt = 0;
     let path_base = &dir_cmd.path;
     let mut walkdir_iter = walkdir::WalkDir::new(&dir_cmd.path).follow_links(false);
@@ -75,7 +78,7 @@ pub fn build_tree(dir_cmd: &Directory, progress_bar: Option<&ProgressBar>) -> Re
     }
     for (idx, entry) in walkdir_iter.into_iter().enumerate() {
         if let Some(pb) = progress_bar
-            && (cnt + 1) % 100 == 0
+            && (cnt + 1) % 1000 == 0
         {
             pb.tick();
             pb.set_message(format!(
@@ -84,7 +87,6 @@ pub fn build_tree(dir_cmd: &Directory, progress_bar: Option<&ProgressBar>) -> Re
                 (cnt + 1).separate_with_spaces()
             ));
         }
-
         match entry {
             Ok(dir_entry) => {
                 let file_type = dir_entry.file_type();
@@ -95,6 +97,10 @@ pub fn build_tree(dir_cmd: &Directory, progress_bar: Option<&ProgressBar>) -> Re
                 let relative_path = dir_entry.path().strip_prefix(path_base).unwrap();
                 let relative_path_str = relative_path.to_string_lossy();
                 let relative_path_parent = relative_path.parent().unwrap().to_string_lossy();
+
+                let file_name_str = dir_entry.file_name().to_string_lossy();
+                let file_name_key = tree.rodeo.get_or_intern(&file_name_str);
+
                 let mut parent_node = if relative_path_parent == "" {
                     tree.tree.root_mut()
                 } else {
@@ -109,11 +115,10 @@ pub fn build_tree(dir_cmd: &Directory, progress_bar: Option<&ProgressBar>) -> Re
                     }
                 };
                 let mut node_properties = serde_json::Map::new();
-                let file_name_str = dir_entry.file_name().to_string_lossy();
 
                 if file_type.is_dir() {
                     cnt += 1;
-                    parent_node.append(file_name_str.to_string());
+                    parent_node.append(file_name_key);
                     node_properties.insert(
                         "type".to_string(),
                         serde_json::Value::String("file".to_string()),
@@ -126,9 +131,11 @@ pub fn build_tree(dir_cmd: &Directory, progress_bar: Option<&ProgressBar>) -> Re
                         "name".to_string(),
                         serde_json::Value::String(file_name_str.to_string()),
                     );
+                    tree.node_properties
+                        .insert(file_name_key, Some(node_properties));
                 } else if file_type.is_file() {
                     cnt += 1;
-                    parent_node.append(dir_entry.file_name().to_string_lossy().to_string());
+                    parent_node.append(file_name_key);
                     node_properties.insert(
                         "type".to_string(),
                         serde_json::Value::String("directory".to_string()),
@@ -141,6 +148,8 @@ pub fn build_tree(dir_cmd: &Directory, progress_bar: Option<&ProgressBar>) -> Re
                         "name".to_string(),
                         serde_json::Value::String(file_name_str.to_string()),
                     );
+                    tree.node_properties
+                        .insert(file_name_key, Some(node_properties));
                 } else {
                     //ignore symlinks
                 }

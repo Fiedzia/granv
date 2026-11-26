@@ -8,7 +8,12 @@ askama = "0.16.1"
 clap = { version = "4.6.7", features = ["derive"] }
 ego-tree = { version = "0.11.1", features = ["serde"] }
 indicatif = "0.18.6"
+lasso = "0.7.3"
 petgraph = "0.8.3"
 serde_json = "1.0.154"
 thousands = "0.2.0"
 walkdir = "2.5.0"
+
+# flamegraph needs it
+#[target.x86_64-unknown-linux-gnu]
+#rustflags = ["-Clink-arg=-Wl,--no-rosegment"]

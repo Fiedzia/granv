@@ -46,7 +46,7 @@ pub fn layout_dirtree_nodes_and_lines_svg(
         };
         x = spacing + (level * horizontal_step) + ((level - 1) / 2) * spacing + spacing;
 
-        println!("Node: {}, {}, {}, {}", node.value(), x, y, level);
+        //println!("Node: {:?}, {}, {}, {}", node.value(), x, y, level);
 
         y += match rendered_templates[idx - 1] {
             Rendered::SVG(_, width, height) => {
@@ -56,8 +56,7 @@ pub fn layout_dirtree_nodes_and_lines_svg(
                     width_height: (width, height),
                 });
                 height
-            }
-            //_ => return Err(format!("SVG rendered did not expect non-svg template {:?} for node {}",rendered_templates[idx-1], node.value() ))
+            } //_ => return Err(format!("SVG rendered did not expect non-svg template {:?} for node {}",rendered_templates[idx-1], node.value() ))
         };
     }
 
