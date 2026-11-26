@@ -1,4 +1,8 @@
 use std::cmp::Ordering;
+use std::iter;
+
+use indicatif::ProgressBar;
+use thousands::Separable;
 
 use crate::commands::tree::load::directory::Directory;
 use crate::model::tree::Tree;
@@ -56,15 +60,31 @@ pub fn sort_by_func(
     Ok(cmp_func)
 }
 
-pub fn build_tree(dir_cmd: &Directory) -> Result<Tree, String> {
+pub fn build_tree(dir_cmd: &Directory, progress_bar: Option<&ProgressBar>) -> Result<Tree, String> {
     let mut tree = Tree::new();
+    let mut cnt = 0;
     let path_base = &dir_cmd.path;
     let mut walkdir_iter = walkdir::WalkDir::new(&dir_cmd.path).follow_links(false);
     if dir_cmd.sort.as_ref().unwrap().len() > 0 {
         let sort_by_fn = sort_by_func(dir_cmd.sort.as_ref().unwrap().clone())?;
         walkdir_iter = walkdir_iter.sort_by(sort_by_fn);
     }
-    for entry in walkdir_iter {
+
+    if let Some(pb) = progress_bar {
+        pb.set_message(format!("Loading directory: {}", path_base));
+    }
+    for (idx, entry) in walkdir_iter.into_iter().enumerate() {
+        if let Some(pb) = progress_bar
+            && (cnt + 1) % 100 == 0
+        {
+            pb.tick();
+            pb.set_message(format!(
+                "Loading directory: {}, {} entries discovered",
+                path_base,
+                (cnt + 1).separate_with_spaces()
+            ));
+        }
+
         match entry {
             Ok(dir_entry) => {
                 let file_type = dir_entry.file_type();
@@ -73,6 +93,7 @@ pub fn build_tree(dir_cmd: &Directory) -> Result<Tree, String> {
                     continue;
                 }
                 let relative_path = dir_entry.path().strip_prefix(path_base).unwrap();
+                let relative_path_str = relative_path.to_string_lossy();
                 let relative_path_parent = relative_path.parent().unwrap().to_string_lossy();
                 let mut parent_node = if relative_path_parent == "" {
                     tree.tree.root_mut()
@@ -80,14 +101,46 @@ pub fn build_tree(dir_cmd: &Directory) -> Result<Tree, String> {
                     match tree.get_by_path_mut(relative_path_parent.split('/')) {
                         Some(node) => node,
                         None => {
-                            panic!("nope");
+                            return Err(format!(
+                                "Expected node not found in the tree: {}",
+                                relative_path_parent
+                            ));
                         }
                     }
                 };
+                let mut node_properties = serde_json::Map::new();
+                let file_name_str = dir_entry.file_name().to_string_lossy();
+
                 if file_type.is_dir() {
-                    parent_node.append(dir_entry.file_name().to_string_lossy().to_string());
+                    cnt += 1;
+                    parent_node.append(file_name_str.to_string());
+                    node_properties.insert(
+                        "type".to_string(),
+                        serde_json::Value::String("file".to_string()),
+                    );
+                    node_properties.insert(
+                        "level".to_string(),
+                        serde_json::Number::from(dir_entry.depth()).into(),
+                    );
+                    node_properties.insert(
+                        "name".to_string(),
+                        serde_json::Value::String(file_name_str.to_string()),
+                    );
                 } else if file_type.is_file() {
+                    cnt += 1;
                     parent_node.append(dir_entry.file_name().to_string_lossy().to_string());
+                    node_properties.insert(
+                        "type".to_string(),
+                        serde_json::Value::String("directory".to_string()),
+                    );
+                    node_properties.insert(
+                        "level".to_string(),
+                        serde_json::Number::from(dir_entry.depth()).into(),
+                    );
+                    node_properties.insert(
+                        "name".to_string(),
+                        serde_json::Value::String(file_name_str.to_string()),
+                    );
                 } else {
                     //ignore symlinks
                 }
@@ -97,6 +150,13 @@ pub fn build_tree(dir_cmd: &Directory) -> Result<Tree, String> {
             }
         }
     }
-    //println!("{}", tree.tree);
+
+    if let Some(pb) = progress_bar {
+        pb.set_message(format!(
+            "Loading directory: {}, {} entries discovered",
+            path_base,
+            (cnt + 1).separate_with_spaces()
+        ));
+    }
     Ok(tree)
 }

@@ -1,4 +1,4 @@
-GRAN - GRaph ANalysis tool
+GRANV - GRaph ANalysis and Visualisation tool
 
 
 Gran is inspired by graphviz, but tries to be more modern,
