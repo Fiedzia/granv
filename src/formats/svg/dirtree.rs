@@ -11,7 +11,7 @@ use crate::layouts::dirtree::svg::NodeLayout;
 use crate::templates::askama::tree::dirtree::Rendered;
 
 const XML_START: &str = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n";
-//const SVG_START: &str = "<svg xmlns=\"http://www.w3.org/2000/svg\">\n";
+const SVG_START: &str = "<svg xmlns=\"http://www.w3.org/2000/svg\">\n";
 const SVG_END: &str = "</svg>\n";
 
 ///Set x and y to position main svg element, remove xml declaration
@@ -73,14 +73,8 @@ pub fn export_dirtree_svg(
     let mut file = File::create("dirtree.svg").map_err(|e| e.to_string())?;
     file.write_all(XML_START.as_bytes())
         .map_err(|e| e.to_string())?;
-    file.write_all(
-        format!(
-            "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 {} {}\" >\n",
-            width, height
-        )
-        .as_bytes(),
-    )
-    .map_err(|e| e.to_string())?;
+    file.write_all(SVG_START.as_bytes())
+        .map_err(|e| e.to_string())?;
     if let Some(pb) = progress_bar {
         pb.set_length(rendered_node_templates.len() as u64);
     }

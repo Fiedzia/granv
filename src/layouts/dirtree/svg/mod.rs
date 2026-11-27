@@ -69,7 +69,7 @@ pub fn layout_dirtree_nodes_and_lines_svg(
 ) -> Result<(Vec<NodeLayout>, Vec<LineLayout>, (u32, u32)), String> {
     //                                        width, height
     let spacing = 1u32; //mm, space between 
-    let horizontal_step = 20u32; //mm
+    let horizontal_step = 10u32; //mm
 
     let mut x: u32 = spacing; //outer image border
     let mut y: u32 = spacing; //outer image border
@@ -95,22 +95,20 @@ pub fn layout_dirtree_nodes_and_lines_svg(
         } else {
             add_spacing = true;
         };
+
+        let svg = match rendered_templates[idx - 1] {
+            Rendered::SVG(ref svg) => svg, //_ => return Err(format!("SVG rendered did not expect non-svg template {:?} for node {}",rendered_templates[idx-1], node.value() ))
+        };
+
+        let (width, height) = get_svg_width_height(&svg)?;
+
         x = spacing + (level * horizontal_step) + ((level - 1) / 2) * spacing + spacing;
 
-        //println!("Node: {:?}, {}, {}, {}", node.value(), x, y, level);
-
-        let (width, height) = match rendered_templates[idx - 1] {
-            Rendered::SVG(ref svg) => {
-                let (width, height) = get_svg_width_height(&svg)?;
-                result_node_layouts.push(NodeLayout {
-                    node_id: node.id(),
-                    left_top: (x, y),
-                    //width_height: (width, height),
-                    width_height: (width, height),
-                });
-                (width, height)
-            } //_ => return Err(format!("SVG rendered did not expect non-svg template {:?} for node {}",rendered_templates[idx-1], node.value() ))
-        };
+        result_node_layouts.push(NodeLayout {
+            node_id: node.id(),
+            left_top: (x, y),
+            width_height: (width, height),
+        });
         y += height;
         max_width = std::cmp::max(max_width, x + width + spacing);
         if let Some(pb) = progress_bar

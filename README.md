@@ -12,6 +12,7 @@ COMMANDS:
 
 * tree - operate on trees
 * graph - operate on graphs
+* json - operate on json
 
 
 TREE OPERATIONS::
