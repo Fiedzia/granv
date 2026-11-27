@@ -13,6 +13,7 @@ petgraph = "0.8.3"
 serde_json = "1.0.154"
 thousands = "0.2.0"
 walkdir = "2.5.0"
+xml = "1.4.0"
 
 # flamegraph needs it
 #[target.x86_64-unknown-linux-gnu]

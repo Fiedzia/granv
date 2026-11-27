@@ -41,3 +41,28 @@ impl Tree {
         Some(self.tree.get_mut(parent.id()).unwrap())
     }
 }
+
+///Tree node trait that will be passed to templates
+///provides any data templates may use
+
+pub struct TemplateNode<'a> {
+    pub node: ego_tree::NodeRef<'a, Spur>,
+    pub rodeo: &'a Rodeo,
+}
+
+impl<'a> TemplateNode<'a> {
+    pub fn new(node: ego_tree::NodeRef<'a, Spur>, rodeo: &'a Rodeo) -> Self {
+        Self { node, rodeo }
+    }
+
+    pub fn name(&self) -> &str {
+        self.rodeo.resolve(self.node.value())
+    }
+
+    pub fn id(&self) -> String {
+        //annoyingly, NodeId index is private. But it implements Debug, so..
+        let formatted = format!("{:?}", self.node.id());
+        let value = &formatted[7..formatted.len() - 1];
+        format!("node_{}", value)
+    }
+}

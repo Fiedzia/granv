@@ -73,15 +73,35 @@ fn main() -> Result<(), String> {
                             "[{elapsed_precise}] {bar:40} {pos:>7}/{len:7} {msg}",
                         )
                         .unwrap();
+
+                        let pb = m.add(ProgressBar::new(tree.tree.nodes().len() as u64));
                         pb.set_style(layout_style);
                         pb.set_message("Generating layout");
 
                         //
-                        let (node_layout, lines_layout) =
-                            layout_dirtree_nodes_and_lines_svg(&tree, &rendered_node_templates)?;
+                        let (node_layout, lines_layout, (width, height)) =
+                            layout_dirtree_nodes_and_lines_svg(
+                                &tree,
+                                &rendered_node_templates,
+                                Some(&pb),
+                            )?;
                         //render lines
                         //generate final svg file
-                        export_dirtree_svg(&rendered_node_templates, &node_layout)?;
+                        let pb = m.add(ProgressBar::new(tree.tree.nodes().len() as u64));
+                        let export_style = ProgressStyle::with_template(
+                            "[{elapsed_precise}] {bar:40} {pos:>7}/{len:7} {msg}",
+                        )
+                        .unwrap();
+                        pb.set_style(export_style);
+                        pb.set_message("Generating svg file");
+
+                        export_dirtree_svg(
+                            &rendered_node_templates,
+                            &node_layout,
+                            width,
+                            height,
+                            Some(&pb),
+                        )?;
                     }
                     _ => {}
                 },
